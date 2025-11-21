@@ -16,7 +16,7 @@ import requests
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Test adding a work queue task via the /newsletter/work-queue/add API"
+        description="Test adding a work queue task via the /app/work-queue/add API"
     )
     parser.add_argument(
         "--project",
@@ -30,7 +30,7 @@ def main():
     )
     parser.add_argument(
         "--url",
-        default="http://localhost:5038",
+        default="http://localhost:5057",
         help="Base URL of the Flask app (default: http://localhost:5038)",
     )
     args = parser.parse_args()
@@ -42,16 +42,16 @@ def main():
     random_number = random.randint(1000, 999999)
     text = f"Test Task from API {random_number}"
 
-    endpoint = f"{args.url}/newsletter/work-queue/{project}/{queue}/add"
+    endpoint = f"{args.url}/app/work-queue/add?project={project}&queue={queue}&type=json"
     #endpoint = f"https://playground-8n3t.onrender.com/newsletter/work-queue/{project}/{queue}/add"
     # params = {
     #     "project": project,
     #     "queue": queue,
     # }
-    payload = {
-        "task_type": "text",
-        "text": text,
-    }
+    # payload = {
+    #     "task_type": "json",
+    #     "text": text,
+    # }
 
     payload = {
         "quote": "Never invest in a business you cannot understand.",

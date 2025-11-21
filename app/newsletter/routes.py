@@ -113,8 +113,8 @@ def get_breadcrumb(items):
     
     Example:
         get_breadcrumb([
-            ("work queue", "/newsletter/work-queue"),
-            ("pc", "/newsletter/work-queue/pc"),
+            ("work queue", "/app/work-queue"),
+            ("pc", "/app/work-queue/pc"),
             ("images",)  # Last item, no URL
         ])
     """
@@ -158,27 +158,18 @@ def newsletter_home():
                 <h2>Navigation</h2>
                 <ul class="list-unstyled">
                     <li class="mb-3">
-                        <a href="/newsletter/work-queue" class="btn btn-outline-primary btn-lg">
+                        <a href="/app/work-queue" class="btn btn-outline-primary btn-lg">
                             Work Queue
                         </a>
                         <p class="mt-2 text-muted">View and manage work queue tasks</p>
                     </li>
                     <li class="mb-3">
-                        <a href="/newsletter/prompts" class="btn btn-outline-primary btn-lg">
+                        <a href="/app/prompts" class="btn btn-outline-primary btn-lg">
                             Prompts
                         </a>
                         <p class="mt-2 text-muted">View and manage prompts</p>
                     </li>
                 </ul>
-            </div>
-            <div class="mt-5">
-                <button class="btn btn-primary" 
-                        hx-post="/newsletter/add-test-snippets" 
-                        hx-target="#status-message"
-                        hx-swap="innerHTML">
-                    Add 5 Test Snippets
-                </button>
-                <div id="status-message" class="mt-3"></div>
             </div>
         </div>
     </body>
@@ -210,7 +201,7 @@ def view_work_queue():
             def make_queue_link(row):
                 proj = row.get("project", "")
                 q = row.get("queue", "")
-                return f"<a href=\"/newsletter/work-queue/{proj}/{q}\">View queue</a>"
+                return f"<a href=\"/app/work-queue/{proj}/{q}\">View queue</a>"
 
             df_summary_display["Link"] = df_summary_display.apply(make_queue_link, axis=1)
             cols_summary = list(df_summary_display.columns)
@@ -300,8 +291,8 @@ def view_work_queue():
         return f"<html><head><link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'></head><body>{nav_bar}<div class='container mt-4'><h1>Error</h1><p>{str(e)}</p></div></body></html>", 500
 
 
-@newsletter_blp.route("/work-queue/<project>/<queue>/add", methods=['POST'])
-def api_add_work_queue_task(project, queue):
+@newsletter_blp.route("/work-queue/add", methods=['POST'])
+def api_add_work_queue_task():
     """
     API to add a new work queue task using WorkQueueManager.add_task.
 
@@ -318,13 +309,17 @@ def api_add_work_queue_task(project, queue):
             "image": image_base64,
         }
     """
+    project = request.args.get("project")
+    queue = request.args.get("queue")
+    task_type = request.args.get("type")
+
     try:
         if not request.is_json:
             return jsonify({"error": "Content-Type must be application/json"}), 400
 
         data = request.get_json()
         #print(f"JSON data: {json.dumps(data, indent=4)}")
-        task_type = data.get("task_type", "text")
+        task_type = data.get("task_type", "json")
         image = None
         if task_type == "image":
             image_data = data.get("image")
@@ -441,12 +436,14 @@ def get_task_view_html(task_dict, factory=None):
     task_type = task_dict.get("task_type", "")
     task_uuid = task_dict.get("uuid", "")
     
-    image_data = None
+    # Initialize both variables
+    content_display = ""
+    image_display = ""
+    
     if task_type == "image":
         content_display = ""
-        image_display = f"<img src='/newsletter/work-queue/image?task_uuid={task_uuid}' class='img-fluid' alt='Task image' style='max-width: 500px; margin-top: 10px;' />"
-    
-    if task_type == "json" and text:
+        image_display = f"<img src='/app/work-queue/image?task_uuid={task_uuid}' class='img-fluid' alt='Task image' style='max-width: 500px; margin-top: 10px;' />"
+    elif task_type == "json" and text:
         try:
             task_data = json.loads(text)
             # Display entire JSON object formatted
@@ -454,7 +451,9 @@ def get_task_view_html(task_dict, factory=None):
         except (json.JSONDecodeError, TypeError):
             # If JSON parsing fails, display raw text
             content_display = f"<pre>{text}</pre>"
-
+    elif text:
+        # For text type or any other type with text
+        content_display = f"<pre>{text}</pre>"
     
     return content_display, image_display
 
@@ -596,8 +595,8 @@ def view_work_queue_tasks(project, queue):
 
         nav_bar = get_nav_bar()
         breadcrumb = get_breadcrumb([
-            ("work queue", "/newsletter/work-queue"),
-            (project, "/newsletter/work-queue"),  # Project link goes to main work queue page
+            ("work queue", "/app/work-queue"),
+            (project, "/app/work-queue"),  # Project link goes to main work queue page
             (queue,)  # Current page, not clickable
         ])
         html = f"""
