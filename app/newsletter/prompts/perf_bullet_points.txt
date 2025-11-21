@@ -1,0 +1,40 @@
+
+Prompt:
+Using the 1-week and 28-day performance data I provide, write 3 concise, compelling bullet points highlighting the most interesting moves across asset classes. Prioritize the 1-week period, and use the 28-day data only when it adds meaningful context (e.g., acceleration, reversals, trend continuation, divergences, or stabilizations).
+
+Focus on insights like:
+
+acceleration or deceleration of trends
+
+sharp reversals vs. longer-term direction
+
+divergences between related assets (e.g., gold vs broad commodities)
+
+risk-on vs risk-off rotation clues
+
+duration sensitivity (e.g., long rates vs short rates)
+
+notable leadership or laggard shifts
+
+concentration of gains/losses (e.g., “most of the 28-day move happened this week”)
+
+macro-relevant patterns (but avoid generic statements like “markets were volatile”)
+
+Guidelines:
+
+Be specific, clear, and investor-oriented.
+
+You may use percentage figures directly from the data.
+
+Avoid price levels.
+
+If weekly and 28-day values appear contradictory, resolve them clearly (e.g., “most of the damage came this week” or “a strong weekly rebound trimmed the 28-day decline”).
+
+Keep tone tight, analytical, and suitable for sophisticated, high-net-worth investors who follow tactical asset allocation and macro context.
+
+Do not generate generic filler. Surface what’s actually interesting in the numbers.
+
+Output:
+Three bullet points — no introduction, no summary, no unnecessary wording.
+
+{data}

@@ -1,0 +1,99 @@
+
+
+build:
+
+  dev:
+
+    pre_execute:
+      - rm -r build/dev/*
+      - cat build/Dockerfile.base build/Dockerfile.dev > build/dev/Dockerfile
+      - cp build/entrypoint_dev.sh build/dev/entrypoint.sh
+      - cp build/requirements.txt build/dev/requirements.txt
+
+    context: ./build/dev
+
+    post_execute:
+      - echo "Done"
+
+
+
+  prod:
+
+    pre_execute:
+      - rm -r build/prod/*
+      - cat build/Dockerfile.base build/Dockerfile.prod > build/prod/Dockerfile
+      - cp build/requirements.txt build/prod/requirements.txt
+      - cp build/entrypoint_prod.sh build/prod/entrypoint.sh
+
+      - mkdir -p build/prod/app
+      - rm -r build/prod/app
+      - cp -r app/ build/prod/app
+
+      - mkdir -p build/prod/packages
+      - mkdir -p build/prod/packages/uilib
+      - rm -r build/prod/packages/uilib
+      - cp -r ../../packages/uilib/ build/prod/packages/uilib/
+
+      - mkdir -p build/prod/packages/utils
+      - rm -r build/prod/packages/utils
+      - cp -r ../../packages/utils/ build/prod/packages/utils/
+
+      - mkdir -p build/prod/packages/aitools
+      - rm -r build/prod/packages/aitools
+      - cp -r ../../packages/aitools/ build/prod/packages/aitools/
+
+    context: ./build/prod
+
+run:
+
+  dev:
+    volumes:
+      -
+        external: app
+        internal: /app
+      -
+        external: ../../packages/
+        internal: /packages/
+
+      -
+        external: data
+        internal: /data
+
+      -
+        external: .secrets
+        internal: /etc/secrets
+
+      -
+        external: ../quizzer/app/blog
+        internal: /external/quizzer/app/blog
+
+      -
+        external: ../portfolio-crunch/app/blog
+        internal: /external/portfolio-crunch/app/blog
+
+      -
+        external: /Users/mike/Downloads
+        internal: /external/downloads
+
+      -
+        external: /Volumes/t7shield/Dropbox/frigate
+        internal: /external/frigate
+
+    ports:
+      -
+        internal: 5000
+        external: 5058
+
+
+  prod:
+
+    volumes:
+      -
+        external: .secrets
+        internal: /etc/secrets
+
+    ports:
+      -
+        internal: 5000
+        external: 5059
+
