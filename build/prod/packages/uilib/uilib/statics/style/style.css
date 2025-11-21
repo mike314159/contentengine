@@ -1,0 +1,272 @@
+html, body {
+    height: 100%;
+    background-color: #FFFFFF;
+}
+body {
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    
+    /* font-family: "Open Sans", sans-serif; */
+    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    
+    font-variation-settings: "wdth" 100;
+    line-height: 1.8;
+}
+
+p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: rgb(107, 114, 128);
+}
+
+
+
+.container {
+    width: 95%;
+}
+
+
+.content {
+    flex: 1 0 auto;
+}
+
+
+
+a {
+    color: rgb(88, 91, 97);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+h1 {
+    font-weight: 800;
+    margin-top: 20px;
+}
+
+h2 {
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+h3 {
+    font-weight: bold;
+    margin-top: 30px;
+}
+
+h4 {
+    font-weight: bold;
+}
+
+pre {
+    font-size: 12px;
+}
+
+table {
+}
+
+th {
+    font-size: 0.9rem;
+}
+
+td {
+    font-size: 0.9rem;
+}
+
+td.red_cell {
+    background: #ffe6e6 !important;
+}
+td.green_cell {
+    background: #e6ffe6 !important;
+}
+
+.btn {
+    background-color: #f4f4f5;
+    border: 1px solid #c4c4c4;
+    border-radius: 5px;
+    color: #27272a;
+}
+
+.btn.active {
+    background-color: #5850ec;
+    border: 1px solid #5850ec;
+    color: white;
+}
+
+.btn:hover {
+    background-color: #5850ec; /* Custom hover background color */
+    color: white; /* Custom hover text color */
+  }
+
+
+
+/* small squares with numbers */
+.countertile {
+    background-color: #e4e4e7;
+    font-size: 12px;
+}
+
+.header-site-name {
+    font-size: 18px;
+    font-family: Candara, Trebuchet MS, Arial, Sans-serif;
+    color: black;
+    font-weight: bold;
+}
+
+.header-link {
+    font-size: 16px;
+    font-family: Candara, Trebuchet MS, Arial, Sans-serif;
+    text-decoration: none;
+    color: rgb(107, 114, 128);
+}
+
+.header-link-selected {
+    font-size: 16px;
+    font-family: Candara, Trebuchet MS, Arial, Sans-serif;
+    font-weight: bold;
+    color: rgb(0,0,0);
+    text-decoration: none;
+}
+
+.hero-title {
+    font-size: 48px;
+    font-weight: 800;
+    margin-top: 30px;
+}
+
+.hero-subtitle {
+    font-size: 20px;
+    line-height: 1.7;
+    color: rgb(107, 114, 128);
+}
+
+.features-title {
+    font-size: 36px;
+    font-weight: 800;
+}
+
+.features-desc {
+    font-size: 23px;
+    color: rgb(107, 114, 128);
+}
+
+.features-feature-title {
+    font-size: 23px;
+    font-weight: 800;
+    color: black;
+}
+
+.features-feature-desc {
+    line-height: 1.8;
+    color: rgb(107, 114, 128);
+}
+
+.navbar {
+    background-color: #f4f4f5;
+}
+
+.navbar .nav-link {
+    text-decoration: none;
+}
+
+.navbar-brand:hover {
+    text-decoration: none;
+}
+
+.newsletter {
+    flex-shrink: 0;
+    background-color: lightgrey;
+    color: #252f3f;
+}
+
+.footer {
+    flex-shrink: 0;
+    background-color: #252f3f;
+    color: #f4f4f5;
+}
+
+.footer-links-header {
+    color: black;
+    font-weight: 700;
+}
+.footer-link {
+    text-decoration: underline;
+    color: #f4f4f5;
+}
+
+.signin-form {
+    text-align: center !important;
+    min-width: 400px;
+    width: 50%;
+    margin: auto;
+    margin-top: 100px;
+}
+
+.form-control {
+    border-left-color: darkgrey;
+    border-right-color: darkgrey;
+    border-top-color: darkgrey;
+    border-bottom-color: darkgrey;
+}
+
+.form-description{
+    font-size: 20px;
+    line-height: 1.7;
+    color: rgb(107, 114, 128);
+}
+
+/*
+.pricing-card {
+    background-color: #f4f4f5;
+}
+
+.pricing-card-title {
+    font-weight: 800;
+}
+
+.pricing-card-subtitle {
+    line-height: 1.7;
+}
+
+.pricing-card-header {
+    background-color: #000000;
+    color: white;
+    font-weight: 800;
+    font-size: 20px;
+}
+
+.pricing-card-price {
+    color: black;
+    font-size: 36px;
+    font-weight: 500;
+}
+
+.pricing-card-features {
+    color: rgb(107, 114, 128);
+    line-height: 2.0;
+}
+
+.pricing-card-body {
+    background-color: #f4f4f5;
+}
+*/
+
+ /* Adjust size for x and y axis labels */
+.bb-axis-x text, .bb-axis-y text {
+    font-size: 13px;
+}
+
+.bb-legend-item text {
+    font-size: 12px; /* Adjust size for legend text */
+}
+
+.bb-chart text {
+    font-size: 20px; /* General chart text font size */
+}
+

@@ -1,0 +1,14 @@
+
+
+# Source: Dockerfile.prod
+# Fragment of Dockerfile used in prod build
+
+
+COPY app /app
+COPY packages /packages
+
+RUN pip install /packages/uilib && \
+    pip install /packages/utils  && \
+    pip install /packages/aitools
+
+CMD [ "/entrypoint.sh" ]

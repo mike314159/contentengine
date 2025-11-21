@@ -1,0 +1,7 @@
+
+
+# Source: Dockerfile.dev
+# Fragment of Dockerfile used in dev build
+
+
+CMD [ "/entrypoint.sh" ]
