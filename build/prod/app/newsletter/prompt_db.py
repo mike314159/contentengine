@@ -174,3 +174,26 @@ class PromptDBPostgres:
             traceback.print_exc()
             return False
 
+    def delete_prompt(self, prompt_id):
+        """
+        Delete a prompt by its prompt_id.
+
+        Args:
+            prompt_id: Prompt identifier.
+
+        Returns:
+            True on success, False on failure.
+        """
+        try:
+            prompt = PromptDBEntry.get(PromptDBEntry.prompt_id == prompt_id)
+            prompt.delete_instance()
+            return True
+
+        except PromptDBEntry.DoesNotExist:
+            return False
+        except Exception as e:
+            print(f"ERROR: Failed to delete prompt by prompt_id: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+

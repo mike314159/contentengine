@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, Response
+from flask import Blueprint, jsonify, request, Response, redirect
 import pandas as pd
 import uuid
 import json
@@ -11,6 +11,49 @@ from .work_queue_task_db import WorkQueueTaskDBEntry
 from .prompt_db import PromptDBEntry
 
 newsletter_blp = Blueprint('newsletter', __name__)
+
+
+def strip_non_ascii(text):
+    """
+    Strip all non-ASCII characters from a string, replacing them with ASCII equivalents where possible.
+    
+    Common replacements:
+    - Smart quotes: " " -> " "
+    - Em dashes: — -> --
+    - En dashes: – -> -
+    - Other non-ASCII -> removed
+    
+    Args:
+        text: Input string (can be None)
+    
+    Returns:
+        String with only ASCII characters, or None if input was None
+    """
+    if text is None:
+        return None
+    
+    # Convert to string if not already
+    text = str(text)
+    
+    # Common Unicode character replacements
+    replacements = {
+        '"': '"',  # Left double quotation mark
+        '"': '"',  # Right double quotation mark
+        ''': "'",  # Left single quotation mark
+        ''': "'",  # Right single quotation mark
+        '—': '--',  # Em dash
+        '–': '-',  # En dash
+        '…': '...',  # Ellipsis
+    }
+    
+    # Apply replacements
+    for unicode_char, ascii_char in replacements.items():
+        text = text.replace(unicode_char, ascii_char)
+    
+    # Remove any remaining non-ASCII characters
+    text = text.encode('ascii', 'ignore').decode('ascii')
+    
+    return text
 
 
 def generate_action_buttons_html(snippet_db, snippet_id, approval_state_id, published_ts=None):
@@ -52,7 +95,6 @@ def get_nav_bar():
     <nav class="navbar navbar-light bg-light mb-4">
         <div class="container-fluid">
             <a class="navbar-brand" href="/newsletter">Home</a>
-            <a class="nav-link" href="/newsletter/snippets">Show snippets</a>
         </div>
     </nav>
     """
@@ -112,13 +154,32 @@ def newsletter_home():
         {nav_bar}
         <div class="container mt-4">
             <h1>Newsletter</h1>
-            <button class="btn btn-primary" 
-                    hx-post="/newsletter/add-test-snippets" 
-                    hx-target="#status-message"
-                    hx-swap="innerHTML">
-                Add 5 Test Snippets
-            </button>
-            <div id="status-message" class="mt-3"></div>
+            <div class="mt-4">
+                <h2>Navigation</h2>
+                <ul class="list-unstyled">
+                    <li class="mb-3">
+                        <a href="/newsletter/work-queue" class="btn btn-outline-primary btn-lg">
+                            Work Queue
+                        </a>
+                        <p class="mt-2 text-muted">View and manage work queue tasks</p>
+                    </li>
+                    <li class="mb-3">
+                        <a href="/newsletter/prompts" class="btn btn-outline-primary btn-lg">
+                            Prompts
+                        </a>
+                        <p class="mt-2 text-muted">View and manage prompts</p>
+                    </li>
+                </ul>
+            </div>
+            <div class="mt-5">
+                <button class="btn btn-primary" 
+                        hx-post="/newsletter/add-test-snippets" 
+                        hx-target="#status-message"
+                        hx-swap="innerHTML">
+                    Add 5 Test Snippets
+                </button>
+                <div id="status-message" class="mt-3"></div>
+            </div>
         </div>
     </body>
     </html>
@@ -745,6 +806,52 @@ def api_get_work_queue_items():
         return jsonify({"error": str(e)}), 500
 
 
+@newsletter_blp.route("/api/get-prompt", methods=['GET'])
+def api_get_prompt():
+    """
+    Get a prompt by project and prompt_id.
+    
+    Query parameters:
+        project: Required, project name
+        prompt: Required, prompt_id (the prompt identifier)
+    
+    Returns JSON with:
+        id: Prompt database ID
+        text: Prompt description/content (prompt_desc)
+    """
+    try:
+        # Get project from query parameter
+        project = request.args.get('project')
+        if not project:
+            return jsonify({"error": "project parameter is required"}), 400
+        
+        # Get prompt_id from query parameter (named 'prompt' in the URL)
+        prompt_id = request.args.get('prompt')
+        if not prompt_id:
+            return jsonify({"error": "prompt parameter is required"}), 400
+        
+        factory = ObjectFactory()
+        prompt_db = factory.get_obj(ObjectFactory.PROMPT_DB)
+        
+        # Get the prompt by prompt_id
+        prompt_data = prompt_db.get_prompt_by_id(prompt_id)
+        
+        if not prompt_data:
+            return jsonify({"error": "Prompt not found"}), 404
+        
+        # Verify the project matches (optional validation)
+        if prompt_data.get("project") != project:
+            return jsonify({"error": "Prompt not found for the specified project"}), 404
+        
+        # Return id and text (prompt_desc)
+        return jsonify({
+            "id": prompt_data.get("id"),
+            "text": prompt_data.get("prompt_desc") or ""
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @newsletter_blp.route("/prompts", methods=['GET'])
 def view_prompts():
     """View all prompts in a table."""
@@ -763,11 +870,13 @@ def view_prompts():
         prompts_table_html = "<p>No prompts found.</p>"
         if not df_prompts.empty:
             df_prompts_display = df_prompts.copy()
-            # Add link to edit prompt in a separate column
+            # Add link to edit prompt and delete button in a separate column
             def make_prompt_link(row):
                 prompt_id = row.get("prompt_id", "")
                 if pd.notna(prompt_id) and prompt_id:
-                    return f"<a href=\"/newsletter/prompt?id={prompt_id}\">Edit</a>"
+                    edit_link = f"<a href=\"/app/prompt?id={prompt_id}\" class=\"btn btn-sm btn-primary me-2\">Edit</a>"
+                    delete_link = f"<a href=\"/app/prompt/delete?id={prompt_id}\" class=\"btn btn-sm btn-danger\">Delete</a>"
+                    return f'<span style="white-space: nowrap;">{edit_link}{delete_link}</span>'
                 return ""
 
             df_prompts_display["Action"] = df_prompts_display.apply(make_prompt_link, axis=1)
@@ -801,7 +910,7 @@ def view_prompts():
                 <hr/>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h1>Prompts</h1>
-                    <a href="/newsletter/prompt/add" class="btn btn-primary">Add New Prompt</a>
+                    <a href="/app/prompt/add" class="btn btn-primary">Add New Prompt</a>
                 </div>
                 {prompts_table_html}
             </div>
@@ -831,7 +940,7 @@ def view_prompt():
 
         nav_bar = get_nav_bar()
         breadcrumb = get_breadcrumb([
-            ("prompts", "/newsletter/prompts"),
+            ("prompts", "/app/prompts"),
             (prompt_id,),
         ])
 
@@ -873,7 +982,7 @@ def view_prompt():
                         <textarea class="form-control" id="prompt_desc" name="prompt_desc" rows="15" style="font-family: monospace;">{prompt_desc_escaped}</textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
-                    <a href="/newsletter/prompts" class="btn btn-secondary">Cancel</a>
+                    <a href="/app/prompts" class="btn btn-secondary">Cancel</a>
                     <div id="status-message" class="mt-3"></div>
                 </form>
             </div>
@@ -884,7 +993,7 @@ def view_prompt():
                     const promptDesc = document.getElementById('prompt_desc').value;
                     const statusMsg = document.getElementById('status-message');
                     
-                    fetch('/newsletter/prompt/update', {{
+                    fetch('/app/prompt/update', {{
                         method: 'POST',
                         headers: {{'Content-Type': 'application/json'}},
                         body: JSON.stringify({{
@@ -897,7 +1006,7 @@ def view_prompt():
                         if (data.status === 'success') {{
                             statusMsg.innerHTML = '<div class="alert alert-success">Prompt updated successfully! Redirecting...</div>';
                             setTimeout(() => {{
-                                window.location.href = '/newsletter/prompts';
+                                window.location.href = '/app/prompts';
                             }}, 1500);
                         }} else {{
                             statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + (data.error || 'Failed to update prompt') + '</div>';
@@ -935,9 +1044,9 @@ def update_prompt():
             return jsonify({"error": "Content-Type must be application/json"}), 400
         
         data = request.get_json()
-        prompt_id = data.get("prompt_id")
-        prompt_desc = data.get("prompt_desc")
-        project = data.get("project")
+        prompt_id = strip_non_ascii(data.get("prompt_id"))
+        prompt_desc = strip_non_ascii(data.get("prompt_desc"))
+        project = strip_non_ascii(data.get("project"))
         
         if not prompt_id:
             return jsonify({"error": "prompt_id is required"}), 400
@@ -959,13 +1068,123 @@ def update_prompt():
         return jsonify({"error": str(e)}), 500
 
 
+@newsletter_blp.route("/prompt/delete", methods=['GET'])
+def delete_prompt_confirm():
+    """Show confirmation page for deleting a prompt."""
+    try:
+        prompt_id = request.args.get('id')
+        if not prompt_id:
+            return "Error: id parameter is required", 400
+
+        factory = ObjectFactory()
+        prompt_db = factory.get_obj(ObjectFactory.PROMPT_DB)
+
+        prompt_data = prompt_db.get_prompt_by_id(prompt_id)
+        if not prompt_data:
+            return "Error: Prompt not found", 404
+
+        nav_bar = get_nav_bar()
+        breadcrumb = get_breadcrumb([
+            ("prompts", "/app/prompts"),
+            (prompt_id, "/app/prompt?id=" + prompt_id),
+            ("delete",),
+        ])
+
+        prompt_desc_raw = prompt_data.get("prompt_desc", "") or ""
+        prompt_desc_escaped = html_module.escape(prompt_desc_raw)
+        project_raw = prompt_data.get("project", "")
+        project_escaped = html_module.escape(project_raw)
+        prompt_id_escaped = html_module.escape(prompt_id)
+        created_ts = prompt_data.get("created_ts", 0)
+
+        html_content = f"""
+        <html>
+        <head>
+            <title>Delete Prompt - {prompt_id_escaped}</title>
+            <script src='https://unpkg.com/htmx.org@1.9.10'></script>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body>
+            {nav_bar}
+            <div class="container mt-4">
+                {breadcrumb}
+                <hr/>
+                <div class="alert alert-warning" role="alert">
+                    <h4 class="alert-heading">Confirm Deletion</h4>
+                    <p>Are you sure you want to delete this prompt? This action cannot be undone.</p>
+                </div>
+                <h1>Delete Prompt: {prompt_id_escaped}</h1>
+                <div class="mb-3">
+                    <label class="form-label"><strong>Project:</strong></label>
+                    <input type="text" class="form-control" value="{project_escaped}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><strong>Prompt ID:</strong></label>
+                    <input type="text" class="form-control" value="{prompt_id_escaped}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><strong>Created:</strong></label>
+                    <input type="text" class="form-control" value="{created_ts}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><strong>Prompt Description:</strong></label>
+                    <textarea class="form-control" rows="15" style="font-family: monospace;" readonly>{prompt_desc_escaped}</textarea>
+                </div>
+                <form method="POST" action="/app/prompt/delete">
+                    <input type="hidden" name="prompt_id" value="{prompt_id_escaped}">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <a href="/app/prompts" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </body>
+        </html>
+        """
+        return html_content, 200
+    except Exception as e:
+        nav_bar = get_nav_bar()
+        return f"<html><head><link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'></head><body>{nav_bar}<div class='container mt-4'><h1>Error</h1><p>{str(e)}</p></div></body></html>", 500
+
+
+@newsletter_blp.route("/prompt/delete", methods=['POST'])
+def delete_prompt():
+    """
+    Delete a prompt.
+    
+    Accepts form data with:
+        - prompt_id: Prompt identifier (required)
+    
+    Redirects to prompts page on success, or shows error.
+    """
+    try:
+        prompt_id = request.form.get("prompt_id")
+        
+        if not prompt_id:
+            nav_bar = get_nav_bar()
+            return f"<html><head><link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'></head><body>{nav_bar}<div class='container mt-4'><h1>Error</h1><p>prompt_id is required</p><a href='/app/prompts' class='btn btn-secondary'>Back to Prompts</a></div></body></html>", 400
+        
+        factory = ObjectFactory()
+        prompt_db = factory.get_obj(ObjectFactory.PROMPT_DB)
+        
+        success = prompt_db.delete_prompt(prompt_id)
+        
+        if success:
+            # Redirect to prompts page
+            return redirect("/app/prompts")
+        else:
+            nav_bar = get_nav_bar()
+            return f"<html><head><link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'></head><body>{nav_bar}<div class='container mt-4'><h1>Error</h1><p>Failed to delete prompt. Prompt may not exist.</p><a href='/app/prompts' class='btn btn-secondary'>Back to Prompts</a></div></body></html>", 404
+    except Exception as e:
+        nav_bar = get_nav_bar()
+        return f"<html><head><link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'></head><body>{nav_bar}<div class='container mt-4'><h1>Error</h1><p>{html_module.escape(str(e))}</p><a href='/app/prompts' class='btn btn-secondary'>Back to Prompts</a></div></body></html>", 500
+
+
 @newsletter_blp.route("/prompt/add", methods=['GET'])
 def add_prompt_form():
     """Show form to add a new prompt."""
     try:
         nav_bar = get_nav_bar()
         breadcrumb = get_breadcrumb([
-            ("prompts", "/newsletter/prompts"),
+            ("prompts", "/app/prompts"),
             ("add",),
         ])
 
@@ -996,7 +1215,7 @@ def add_prompt_form():
                         <textarea class="form-control" id="prompt_desc" name="prompt_desc" rows="15" style="font-family: monospace;"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">Submit</button>
-                    <a href="/newsletter/prompts" class="btn btn-secondary">Cancel</a>
+                    <a href="/app/prompts" class="btn btn-secondary">Cancel</a>
                     <div id="status-message" class="mt-3"></div>
                 </form>
             </div>
@@ -1013,7 +1232,7 @@ def add_prompt_form():
                         return false;
                     }}
                     
-                    fetch('/newsletter/prompt/add', {{
+                    fetch('/app/prompt/add', {{
                         method: 'POST',
                         headers: {{'Content-Type': 'application/json'}},
                         body: JSON.stringify({{
@@ -1022,12 +1241,21 @@ def add_prompt_form():
                             prompt_desc: promptDesc
                         }})
                     }})
-                    .then(response => response.json())
+                    .then(response => {{
+                        if (!response.ok) {{
+                            return response.json().then(data => {{
+                                throw new Error(data.error || 'Failed to add prompt');
+                            }}).catch(() => {{
+                                throw new Error('Server error: ' + response.status);
+                            }});
+                        }}
+                        return response.json();
+                    }})
                     .then(data => {{
                         if (data.status === 'success') {{
                             statusMsg.innerHTML = '<div class="alert alert-success">Prompt added successfully! Redirecting...</div>';
                             setTimeout(() => {{
-                                window.location.href = '/newsletter/prompts';
+                                window.location.href = '/app/prompts';
                             }}, 1500);
                         }} else {{
                             statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + (data.error || 'Failed to add prompt') + '</div>';
@@ -1065,9 +1293,9 @@ def add_prompt():
             return jsonify({"error": "Content-Type must be application/json"}), 400
         
         data = request.get_json()
-        project = data.get("project")
-        prompt_id = data.get("prompt_id")
-        prompt_desc = data.get("prompt_desc")
+        project = strip_non_ascii(data.get("project"))
+        prompt_id = strip_non_ascii(data.get("prompt_id"))
+        prompt_desc = strip_non_ascii(data.get("prompt_desc"))
         
         if not project or not prompt_id:
             return jsonify({"error": "project and prompt_id are required"}), 400
