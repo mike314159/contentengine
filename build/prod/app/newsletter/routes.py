@@ -843,11 +843,14 @@ def api_get_prompt():
         if prompt_data.get("project") != project:
             return jsonify({"error": "Prompt not found for the specified project"}), 404
         
+        prompt = prompt_data.get("prompt_desc")
+        result = {
+            "prompt": prompt
+        }
         # Return id and text (prompt_desc)
-        return jsonify({
-            "id": prompt_data.get("id"),
-            "text": prompt_data.get("prompt_desc") or ""
-        }), 200
+        return jsonify(
+            result
+        ), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
