@@ -844,9 +844,9 @@ def api_get_prompt():
             return jsonify({"error": "Prompt not found for the specified project"}), 404
         
         prompt = prompt_data.get("prompt_desc")
-        result = {
-            "prompt": prompt
-        }
+        result = [
+            { "prompt": prompt }
+        ]
         # Return id and text (prompt_desc)
         return jsonify(
             result
